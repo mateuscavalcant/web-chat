@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        #chat {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vb;
+
+        }
+    </style>
+    <title>Chat</title>
+</head>
+
+<body>
+    <div id="chat">
+        <div id="messages"></div>
+        <form id="messageForm">
+            <input type="text" id="messageInput">
+            <button type="submit">Enviar</button>
+        </form>
+    </div>
+
+    <script>
+        const socket = new WebSocket("ws://localhost:8080/echo");
+
+        socket.onmessage = function (event) {
+            const messagesDiv = document.getElementById("messages");
+            const message = document.createElement("div");
+            message.textContent = event.data;
+            messagesDiv.appendChild(message);
+        };
+
+        document.getElementById("messageForm").addEventListener("submit", function (event) {
+            event.preventDefault();
+            const messageInput = document.getElementById("messageInput");
+            socket.send(messageInput.value);
+            messageInput.value = "";
+        });
+    </script>
+</body>
+
+</html>
