@@ -2,57 +2,64 @@ package main
 
 import (
 	"fmt"
-	"html/template"
 	"log"
 	"net/http"
+	"text/template"
 
 	"github.com/gorilla/websocket"
 )
 
-var upgrader = websocket.Upgrader{
-    ReadBufferSize:  1024,
-    WriteBufferSize: 1024,
+type Client struct {
+	conn *websocket.Conn
 }
 
-func echo(w http.ResponseWriter, r *http.Request) {
-    // Upgrade the HTTP connection to a WebSocket connection
-    conn, err := upgrader.Upgrade(w, r, nil)
-    if err != nil {
-        log.Println(err)
-        return
-    }
-    defer conn.Close()
+var (
+	upgrader = websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+	}
+	clients = make(map[*websocket.Conn]*Client)
+)
 
-    for {
-        // Read message from the browser
-        messageType, p, err := conn.ReadMessage()
-        if err != nil {
-            log.Println(err)
-            return
-        }
+func handleMessages(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer conn.Close()
 
-        // Print the message to the console
-        log.Printf("Received message: %s", p)
+	client := &Client{conn}
+	clients[conn] = client
 
-        // Write message back to the browser
-        if err := conn.WriteMessage(messageType, p); err != nil {
-            log.Println(err)
-            return
-        }
-    }
+	for {
+		messageType, p, err := conn.ReadMessage()
+		if err != nil {
+			log.Println(err)
+			delete(clients, conn)
+			return
+		}
+
+		for _, c := range clients {
+			if c.conn != conn {
+				if err := c.conn.WriteMessage(messageType, p); err != nil {
+					log.Println(err)
+					return
+				}
+			}
+		}
+	}
 }
-
 func renderTemplate(w http.ResponseWriter, r *http.Request) {
 	tmpl := template.Must(template.ParseFiles("templates/index.html"))
 	
-	tmpl.Execute(w, r)
+	tmpl.Execute(w, nil)
 }
 
 func main() {
 
 	fmt.Println("Server ON...")
 	http.HandleFunc("/", renderTemplate)
-
-    http.HandleFunc("/echo", echo)
-    log.Fatal(http.ListenAndServe(":8080", nil))
+	http.HandleFunc("/chat", handleMessages)
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }

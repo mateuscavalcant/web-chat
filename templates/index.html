@@ -27,7 +27,7 @@
     </div>
 
     <script>
-        const socket = new WebSocket("ws://localhost:8080/echo");
+        const socket = new WebSocket("ws://localhost:8080/chat");
 
         socket.onmessage = function (event) {
             const messagesDiv = document.getElementById("messages");
