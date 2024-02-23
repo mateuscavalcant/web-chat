@@ -2,7 +2,6 @@ package main
 
 import (
 	"os"
-	"web-chat/api/routes"
 	"web-chat/pkg/database"
 
 	"github.com/gin-gonic/gin"
@@ -16,8 +15,6 @@ func main() {
 	r := gin.Default()
 
 	r.Use(corsMiddleware())
-
-	routes.InitRoutes(r.Group("/"))
 
 	port := os.Getenv("PORT")
 	if port == "" {

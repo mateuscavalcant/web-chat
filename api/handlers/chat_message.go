@@ -12,9 +12,9 @@ import (
 	"web-chat/pkg/models"
 	"web-chat/pkg/models/err"
 
-	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 )
+
 
 type Client struct {
 	conn *websocket.Conn
@@ -28,105 +28,121 @@ var (
 	clients = make(map[*websocket.Conn]*Client)
 )
 
-func Chat(c *gin.Context) {
 
-	idInterface, _ := utils.AllSessions(c)
+func Chat(w http.ResponseWriter, r *http.Request) {
+	// Upgrade HTTP request to WebSocket
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println("Failed to upgrade to WebSocket:", err)
+		http.Error(w, "Failed to upgrade to WebSocket", http.StatusInternalServerError)
+		return
+	}
+	defer conn.Close()
+
+	idInterface, _ := utils.AllSessions(r)
 	id, _ := strconv.Atoi(idInterface.(string))
 
-    username := c.Param("username") // Obtenha o nome de usuário dos parâmetros da rota
+	// Obtendo o nome de usuário dos parâmetros da URL
+	username := r.URL.Query().Get("username")
 
-    db := database.GetDB()
+	db := database.GetDB()
 
-    var messages []models.UserMessage
+	var messages []models.UserMessage
 
-    // Obtendo o ID do usuário com base no nome de usuário fornecido
-    var userID int
-    err := db.QueryRow("SELECT id FROM user WHERE username = ?", username).Scan(&userID)
-    if err != nil {
-        log.Println("Failed to query user ID:", err)
-        c.JSON(http.StatusInternalServerError, gin.H{
-            "error": "Failed to get user ID",
-        })
-        return
-    }
+	var userID int
+	err = db.QueryRow("SELECT id FROM user WHERE username = ?", username).Scan(&userID)
+	if err != nil {
+		log.Println("Failed to query user ID:", err)
+		http.Error(w, "Failed to get user ID", http.StatusInternalServerError)
+		return
+	}
 
-    query := `
-        SELECT user_message.message_id, user_message.id AS message_user_id, user_message.content,
-               user.id AS user_id, user.username, user.name, user.icon
-        FROM user_message
-        JOIN user ON user.id = user_message.id
-        WHERE (user_message.id = ? AND user_message.messageTo = ?) OR 
-              (user_message.id = ? AND user_message.messageTo = ?)
-        ORDER BY user_message.created_at ASC
-    `
+	stmt, err := db.Prepare(`
+    SELECT user_message.message_id, user_message.id AS message_user_id, user_message.content,
+           user.id AS user_id, user.username, user.name, user.icon
+    FROM user_message
+    JOIN user ON user.id = user_message.id
+    WHERE (user_message.id = ? AND user_message.messageTo = ?) OR 
+          (user_message.id = ? AND user_message.messageTo = ?)
+    ORDER BY user_message.created_at ASC
+	`)
+	if err != nil {
+		log.Println("Failed to prepare statement:", err)
+		http.Error(w, "Failed to prepare statement", http.StatusInternalServerError)
+		return
+	}
+	defer stmt.Close()
 
-    rows, err := db.Query(query, id, userID, userID, id)
-    if err != nil {
-        log.Println("Failed to execute query:", err)
-        c.JSON(http.StatusInternalServerError, gin.H{
-            "error": "Failed to execute query",
-        })
-        return
-    }
-    defer rows.Close()
+	rows, err := stmt.Query(id, userID, userID, id)
+	if err != nil {
+		log.Println("Failed to execute query:", err)
+		http.Error(w, "Failed to execute query", http.StatusInternalServerError)
+		return
+	}
 
-    for rows.Next() {
-        var message models.UserMessage
-        var icon []byte
+	defer rows.Close()
 
-        err := rows.Scan(&message.MessageID, &message.MessageUserID, &message.Content, &message.UserID, &message.MessageBy, &message.Name, &icon)
-        if err != nil {
-            log.Println("Failed to scan rows:", err)
-            c.JSON(http.StatusInternalServerError, gin.H{
-                "error": "Failed to scan rows",
-            })
-            return
-        }
+	for rows.Next() {
+		var message models.UserMessage
+		var icon []byte
 
-        var imageBase64 string
-        if icon != nil {
-            imageBase64 = base64.StdEncoding.EncodeToString(icon)
-        }
+		err := rows.Scan(&message.MessageID, &message.MessageUserID, &message.Content, &message.UserID, &message.CreatedBy, &message.Name, &icon)
+		if err != nil {
+			log.Println("Failed to scan rows:", err)
+			http.Error(w, "Failed to scan rows", http.StatusInternalServerError)
+			return
+		}
 
-        messages = append(messages, models.UserMessage{
-            MessageID:     message.MessageID,
-            MessageUserID: message.MessageUserID,
-            Content:       message.Content,
-            UserID:        message.UserID,
-            MessageBy:     message.MessageBy,
-            Name:          message.Name,
-            IconBase64:    imageBase64,
-        })
-    }
+		var imageBase64 string
+		if icon != nil {
+			imageBase64 = base64.StdEncoding.EncodeToString(icon)
+		}
 
-    c.JSON(http.StatusOK, gin.H{
-        "messages": messages,
-    })
+		messages = append(messages, models.UserMessage{
+			MessageID:     message.MessageID,
+			MessageUserID: message.MessageUserID,
+			Content:       message.Content,
+			UserID:        message.UserID,
+			CreatedBy:     message.CreatedBy,
+			Name:          message.Name,
+			IconBase64:    imageBase64,
+		})
+	}
+
+	if err := conn.WriteJSON(messages); err != nil {
+		log.Println("Failed to send messages over WebSocket:", err)
+		return
+	}
 }
 
-func CreateNewMessage(c *gin.Context) {
+
+func CreateNewMessage(w http.ResponseWriter, r *http.Request) {
     var userMessage models.UserMessage
-    errresp := err.ErrorResponse{
-        Error: make(map[string]string),
+    var errResp err.ErrorResponse
+
+    // Parse form data
+    if err := r.ParseForm(); err != nil {
+        http.Error(w, err.Error(), http.StatusBadRequest)
+        return
     }
 
-    username := c.PostForm("username")
-    content := strings.TrimSpace(c.PostForm("content"))
-    idInterface, _ := utils.AllSessions(c)
+    username := r.FormValue("username")
+    content := strings.TrimSpace(r.FormValue("content"))
+    idInterface, _ := utils.AllSessions(r)
     if idInterface == nil {
-        // If the user is not logged in, return an authentication error
-        c.JSON(http.StatusUnauthorized, gin.H{
-            "error": "Unauthorized",
-        })
+        http.Error(w, "Unauthorized", http.StatusUnauthorized)
         return
     }
 
     if content == "" {
-        errresp.Error["content"] = "Values are missing!"
+        errResp.Error["content"] = "Values are missing!"
     }
 
-    if len(errresp.Error) > 0 {
-        c.JSON(400, errresp)
+    if len(errResp.Error) > 0 {
+        errJSON, _ := json.Marshal(errResp)
+        w.Header().Set("Content-Type", "application/json")
+        w.WriteHeader(http.StatusBadRequest)
+        w.Write(errJSON)
         return
     }
 
@@ -135,77 +151,43 @@ func CreateNewMessage(c *gin.Context) {
 
     db := database.GetDB()
 
-    var usernameSession string
-    err := db.QueryRow("SELECT username FROM user WHERE id = ?", id).Scan(&usernameSession)
-    if err != nil {
-        log.Println("Error querying username:", err)
-        c.JSON(http.StatusInternalServerError, gin.H{
-            "error": "Failed to query username",
-        })
-        return
-    }
-
     var userID int
-    // Query the database to get the ID of the user to be followed
-    errUsername := db.QueryRow("SELECT id FROM user WHERE username = ?", username).Scan(&userID)
+    err := db.QueryRow("SELECT id FROM user WHERE username = ?", username).Scan(&userID)
     if err != nil {
-        log.Println("Failed to query user ID", errUsername)
-        c.JSON(http.StatusInternalServerError, gin.H{
-            "error": "Failed to get user ID",
-        })
+        log.Println("Failed to query user ID", err)
+        http.Error(w, "Failed to get user ID", http.StatusInternalServerError)
         return
     }
 
-    userMessage.MessageBy = usernameSession
+    userMessage.MessageBy = id
     userMessage.MessageTo = userID
 
-    stmt, err := db.Prepare("INSERT INTO user_message(content, messageBy, messageTo, userID, created_at) VALUES (?, ?, ?, ?, NOW())")
+	stmt, err := db.Prepare("INSERT INTO user_message(content, messageBy, messageTo, userID, created_at) VALUES (?, ?, ?, ?, NOW())")
+	if err != nil {
+		log.Println("Error preparing SQL statement:", err)
+		http.Error(w, "Failed to prepare statement", http.StatusInternalServerError)
+		return
+	}
 
-    if err != nil {
-        log.Println("Error preparing SQL statement:", err)
-        c.JSON(http.StatusInternalServerError, gin.H{
-            "error": "Failed to prepare statement",
-        })
-        return
-    }
-
-    rs, err := stmt.Exec(userMessage.Content, userMessage.MessageBy, userMessage.MessageTo, id)
-    if err != nil {
-        log.Println("Error executing SQL statement:", err)
-        c.JSON(http.StatusInternalServerError, gin.H{
-            "error": "Failed to execute statement",
-        })
-        return
-    }
+	defer stmt.Close()
+	
+	rs, err := stmt.Exec(userMessage.Content, userMessage.MessageBy, userMessage.MessageTo, id)
+	if err != nil {
+		log.Println("Error executing SQL statement:", err)
+		http.Error(w, "Failed to execute statement", http.StatusInternalServerError)
+		return
+	}
 
     insertID, _ := rs.LastInsertId()
 
-    // Prepare the message to send via WebSocket
-    messageToSend := map[string]interface{}{
+    resp := map[string]interface{}{
         "messageID": insertID,
-        "mssg":      "message Created!!",
+        "message":   "Message sent successfully",
     }
 
-    // Convert the message to JSON
-    jsonMessage, err := json.Marshal(messageToSend)
-    if err != nil {
-        log.Println("Error marshaling JSON:", err)
-        c.JSON(http.StatusInternalServerError, gin.H{
-            "error": "Failed to marshal JSON",
-        })
-        return
-    }
+    respJSON, _ := json.Marshal(resp)
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusOK)
+    w.Write(respJSON)
 
-    // Send the message to all WebSocket clients
-    for _, client := range clients {
-        if err := client.conn.WriteMessage(websocket.TextMessage, jsonMessage); err != nil {
-            log.Println("Error writing WebSocket message:", err)
-            // If there's an error, continue sending to other clients
-            continue
-        }
-    }
-
-    c.JSON(http.StatusOK, gin.H{
-        "message": "Message sent successfully",
-    })
 }

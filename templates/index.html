@@ -21,27 +21,65 @@
     <div id="chat">
         <div id="messages"></div>
         <form id="messageForm">
-            <input type="text" id="messageInput">
+            <input type="text" id="content" name="content">
             <button type="submit">Enviar</button>
         </form>
     </div>
 
     <script>
-        const socket = new WebSocket("ws://localhost:8080/chat");
+        const pathParts = window.location.pathname.split("/");
+        const username = pathParts[pathParts.length - 1];
+
+        const socket = new WebSocket("ws://localhost:8080/chat?username=" + username);
+
+        socket.onopen = function (event) {
+            console.log("Conexão WebSocket aberta.");
+        };
 
         socket.onmessage = function (event) {
-            const messagesDiv = document.getElementById("messages");
-            const message = document.createElement("div");
-            message.textContent = event.data;
-            messagesDiv.appendChild(message);
+            const message = JSON.parse(event.data);
+            displayMessage(message);
         };
+
+        socket.onclose = function (event) {
+            console.log("Conexão WebSocket fechada.");
+        };
+
+        function displayMessage(message) {
+            const messagesContainer = document.getElementById("messages");
+            const messageElement = document.createElement("div");
+            messageElement.innerText = message.name + ": " + message.content;
+            messagesContainer.appendChild(messageElement);
+        }
 
         document.getElementById("messageForm").addEventListener("submit", function (event) {
             event.preventDefault();
-            const messageInput = document.getElementById("messageInput");
-            socket.send(messageInput.value);
-            messageInput.value = "";
+            const pathParts = window.location.pathname.split("/");
+            const username = pathParts[pathParts.length - 1];
+            const content = document.getElementById("content").value;
+            const formData = new FormData();
+            formData.append("content", content);
+
+            fetch("/create-message" + username, {
+                method: "POST",
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        document.getElementById("error-content").textContent = data.error.content
+                    } else {
+                        document.getElementById("content").value = "";
+
+
+                    }
+                })
+                .catch(error => {
+                    console.error(error);
+                });
         });
+
+
     </script>
 </body>
 

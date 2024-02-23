@@ -1,15 +1,17 @@
 package routes
 
 import (
+	"net/http"
 	"web-chat/api/handlers"
 	"web-chat/api/middlewares"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gorilla/mux"
 )
 
-func InitRoutes(r *gin.RouterGroup) {
-	r.POST("/signup", handlers.CreateUserAccount)
-	r.POST("/login", middlewares.LimitLoginAttempts(),handlers.AccessUserAccount)
-	r.PUT("/update-profile", handlers.UpdateUserAccount)
-	r.DELETE("/delete-account", handlers.DeleteUserAccount)
+func InitRoutes(r *mux.Router) {
+	// Initialize the handlers
+	r.HandleFunc("/signup", handlers.CreateUserAccount).Methods("POST")
+	r.Handle("/login", middlewares.LimitLoginAttempts(http.HandlerFunc(handlers.AccessUserAccount))).Methods("POST")
+	r.Handle("/chat/{username}", middlewares.AuthMiddleware(http.HandlerFunc(handlers.Chat))).Methods("POST")
+	r.Handle("/create-message/{username}", middlewares.AuthMiddleware(http.HandlerFunc(handlers.CreateNewMessage))).Methods("POST")
 }

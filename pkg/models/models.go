@@ -18,9 +18,9 @@ type UserMessage struct {
 	Content    string `json:"content"`
 	Icon       []byte `json:"icon"`
 	IconBase64 string `json:"iconbase64"`
-	MessageBy  string `json:"createdby"`
+	CreatedBy  string `json:"createdby"`
 	Name       string `json:"createdbyname"`
 	FollowID int `json:"follow-id"`
-	FollowBy int `json:"follow-by"`
+	MessageBy int `json:"follow-by"`
 	MessageTo  int `json:"follow-to"`
 }

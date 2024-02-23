@@ -1,19 +1,18 @@
 package handlers
 
 import (
-	_ "database/sql"
+	"encoding/json"
 	"log"
+	"net/http"
 	"strings"
 	"web-chat/pkg/database"
 	"web-chat/pkg/models"
 	"web-chat/pkg/models/err"
 	"web-chat/pkg/validators"
-
-	"github.com/gin-gonic/gin"
 )
 
 // CreateUserAccount handles the creation of a new user account.
-func CreateUserAccount(c *gin.Context) {
+func CreateUserAccount(w http.ResponseWriter, r *http.Request) {
 	// Define a struct to hold user information.
 	var user models.User
 
@@ -23,16 +22,22 @@ func CreateUserAccount(c *gin.Context) {
 	}
 
 	// Extract form data from the request.
-	name := strings.TrimSpace(c.PostForm("name"))
-	email := strings.TrimSpace(c.PostForm("email"))
-	password := strings.TrimSpace(c.PostForm("password"))
-	confirmPassword := strings.TrimSpace(c.PostForm("confirm_password"))
+	if err := r.ParseForm(); err != nil {
+		log.Println("Error parsing form:", err)
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		return
+	}
+
+	name := strings.TrimSpace(r.FormValue("name"))
+	email := strings.TrimSpace(r.FormValue("email"))
+	password := strings.TrimSpace(r.FormValue("password"))
+	confirmPassword := strings.TrimSpace(r.FormValue("confirm_password"))
 
 	// Check if the email already exists in the database.
 	existEmail, err := validators.ExistEmail(email)
 	if err != nil {
 		log.Println("Error checking email existence:", err)
-		c.JSON(500, gin.H{"error": "Failed to validate email"})
+		http.Error(w, "Failed to validate email", http.StatusInternalServerError)
 		return
 	}
 
@@ -68,7 +73,11 @@ func CreateUserAccount(c *gin.Context) {
 
 	// If there are errors, return the response.
 	if len(resp.Error) > 0 {
-		c.JSON(400, resp)
+		w.WriteHeader(http.StatusBadRequest)
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
+			log.Println("Error encoding response:", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -91,12 +100,15 @@ func CreateUserAccount(c *gin.Context) {
 	_, err = stmt.Exec(user.Name, user.Email, validators.Hash(user.Password))
 	if err != nil {
 		log.Println("Error executing SQL statement:", err)
-		c.JSON(500, gin.H{"error": "Failed to create user"})
+		http.Error(w, "Failed to create user", http.StatusInternalServerError)
 		return
 	}
 
 	// Return success message if the user is created successfully.
-	c.JSON(200, gin.H{"message": "User created successfully"})
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write([]byte(`{"message": "User created successfully"}`)); err != nil {
+		log.Println("Error writing response:", err)
+	}
 
 	// Close the prepared statement to release resources.
 	defer stmt.Close()

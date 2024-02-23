@@ -1,7 +1,9 @@
 package utils
 
 import (
+	"encoding/json"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -12,9 +14,9 @@ import (
 var store = sessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET")))
 
 // GetSession retrieves the session from the request.
-func GetSession(c *gin.Context) *sessions.Session {
+func GetSession(r *http.Request) *sessions.Session {
 	// Retrieve the session from the store.
-	session, err := store.Get(c.Request, "session")
+	session, err := store.Get(r, "session")
 	// Handle any errors.
 	Err(err)
 	// Return the session.
@@ -22,9 +24,9 @@ func GetSession(c *gin.Context) *sessions.Session {
 }
 
 // AllSessions retrieves all session data.
-func AllSessions(c *gin.Context) (interface{}, interface{}) {
+func AllSessions(r *http.Request) (interface{}, interface{}) {
 	// Retrieve the session.
-	session := GetSession(c)
+	session := GetSession(r)
 	// Extract id and email from the session.
 	id := session.Values["id"]
 	email := session.Values["email"]
@@ -33,19 +35,33 @@ func AllSessions(c *gin.Context) (interface{}, interface{}) {
 }
 
 // Err logs fatal errors.
-func Err(err interface{}) {
+func Err(err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
 // Ses returns session information.
-func Ses(c *gin.Context) interface{} {
+func Ses(r *http.Request) interface{} {
 	// Retrieve session information.
-	id, username := AllSessions(c)
+	id, username := AllSessions(r)
 	// Return session data as a map.
 	return map[string]interface{}{
 		"id":       id,
 		"username": username,
 	}
+}
+
+// respondWithError responds with the provided error message and status code.
+func RespondWithError(w http.ResponseWriter, message interface{}, statusCode int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(gin.H{"error": message})
+}
+
+// respondWithJSON responds with the provided data and status code.
+func RespondWithJSON(w http.ResponseWriter, data interface{}, statusCode int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(data)
 }
