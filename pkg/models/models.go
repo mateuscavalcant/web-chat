@@ -21,6 +21,6 @@ type UserMessage struct {
 	CreatedBy  string `json:"createdby"`
 	Name       string `json:"createdbyname"`
 	FollowID int `json:"follow-id"`
-	MessageBy int `json:"follow-by"`
-	MessageTo  int `json:"follow-to"`
+	MessageBy int `json:"message-by"`
+	MessageTo  int `json:"message-to"`
 }

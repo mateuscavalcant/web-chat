@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"web-chat/api/handlers"
 	"web-chat/api/middlewares"
+	"web-chat/api/views"
 
 	"github.com/gorilla/mux"
 )
@@ -11,7 +12,12 @@ import (
 func InitRoutes(r *mux.Router) {
 	// Initialize the handlers
 	r.HandleFunc("/signup", handlers.CreateUserAccount).Methods("POST")
-	r.Handle("/login", middlewares.LimitLoginAttempts(http.HandlerFunc(handlers.AccessUserAccount))).Methods("POST")
-	r.Handle("/chat/{username}", middlewares.AuthMiddleware(http.HandlerFunc(handlers.Chat))).Methods("POST")
-	r.Handle("/create-message/{username}", middlewares.AuthMiddleware(http.HandlerFunc(handlers.CreateNewMessage))).Methods("POST")
+	r.HandleFunc("/login", views.RenderLoginTemplate).Methods("GET")
+	r.Handle("/login", middlewares.LimitLoginAttempts(http.HandlerFunc(handlers.AccessUserAccount)))
+	r.HandleFunc("/chat/{username}", handlers.Chat).Methods("POST")
+	r.HandleFunc("/create-message/{username}", handlers.CreateNewMessage).Methods("POST")
+	r.HandleFunc("/websocket/{username}", handlers.WebSocketHandler)
+	r.Handle("/home", middlewares.AuthMiddleware(http.HandlerFunc(views.RenderHomeTemplate))).Methods("GET")
+	r.Handle("/chat/{username}", middlewares.AuthMiddleware(http.HandlerFunc(views.RenderChatTemplate))).Methods("GET")
 }
+

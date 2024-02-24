@@ -55,7 +55,7 @@ func AccessUserAccount(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// Log the error and set appropriate response for invalid credentials.
 		log.Println("Error executing SQL statement:", err)
-		resp.Error["credentials"] = "Invalid credentials"
+		resp.Error["email"] = "Invalid credentials"
 
 		if attempts, found := loginAttempts.Get(email); found {
 			loginAttempts.Set(email, attempts.(int)+1, cache.DefaultExpiration)
@@ -110,10 +110,8 @@ func AccessUserAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Return success message if the user is created successfully.
-	w.WriteHeader(http.StatusOK)
-	if _, err := w.Write([]byte(`{"message": "User logged in successfully"}`)); err != nil {
-		log.Println("Error writing response:", err)
-	}
+	
+	// Redirect to /home after successful login.
+    http.Redirect(w, r, "/home", http.StatusFound)
 
 }

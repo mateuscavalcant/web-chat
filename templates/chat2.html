@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Home</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: auto;
+            image-rendering: optimizeSpeed;
+        }
+
+        .home-header {
+            border: 1px solid #ccc;
+            padding: 10px;
+            width: 600px;
+            height: 25px;
+            margin-left: 270px;
+            margin-right: auto;
+            margin-bottom: -1px;
+            overflow: hidden;
+        }
+
+        .header-home-screen {
+            display: flex;
+            align-items: center;
+            color: #000000;
+            font-weight: bold;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 18px;
+            margin-top: -18px;
+            margin-left: 10px;
+        }
+
+        .post {
+            border: 0.3px solid #ccc;
+            padding: 10px;
+            width: 600px;
+            margin-left: 270px;
+            margin-right: auto;
+            bottom: 50px;
+            word-wrap: break-word;
+            overflow: auto;
+            position: relative;
+        }
+
+        .post p {
+            margin: 0;
+        }
+
+        .post-title {
+            margin-left: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            margin-top: 10px;
+        }
+
+        .user-username {
+            display: flex;
+            align-items: center;
+            margin-top: -90px;
+            color: #6f6f6f;
+            font-weight: normal;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 15px;
+
+        }
+
+        .user-name {
+            display: flex;
+            align-items: center;
+            margin-top: -90px;
+            margin-right: 4px;
+            color: #000000;
+            font-weight: bold;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 15px;
+            cursor: pointer;
+
+        }
+
+        .post-content {
+            color: #3d3d3d;
+            margin-top: -32px;
+            margin-left: 60px;
+            font-weight: normal;
+            font-size: 15px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .post-links {
+            margin-left: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            margin-top: 10px;
+        }
+
+        .post-links img {
+            margin-right: 80px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .post-form-create {
+            height: 105px;
+            width: 620px;
+            margin-left: 270px;
+            margin-right: auto;
+            margin-bottom: 50px;
+            word-wrap: break-word;
+            overflow: auto;
+            display: flex;
+            transform: translateX(-0%);
+            align-items: center;
+            border: 1px solid #ccc;
+            position: relative;
+            z-index: 1;
+        }
+
+        .post-form-create textarea {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            outline: none;
+            resize: none;
+            min-height: 70px;
+            margin-bottom: -5px;
+        }
+
+        .post-form-create button {
+            margin-left: 8px;
+            margin-right: 20px;
+            margin-bottom: -35px;
+            padding: 10px 22px;
+            background-color: #000000;
+            color: #fff;
+            font-weight: bold;
+            border: none;
+            border-radius: 19px;
+            cursor: pointer;
+        }
+
+        #content {
+            padding-top: 20px;
+            padding-left: 19px;
+            color: #3d3d3d;
+            font-weight: normal;
+            font-size: 15px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        #content::placeholder {
+            left: 15px;
+            color: #747474;
+            font-size: 17px;
+        }
+
+        .profile-icon {
+            margin-top: 1px;
+            width: 43px;
+            height: 43px;
+            border-radius: 50%;
+            margin-left: 5px;
+        }
+
+        .bar-btn-container {
+            position: fixed;
+            bottom: 0px;
+            transform: translateX(-0%);
+            background-color: #ffffff;
+            border: 1px solid #ccc;
+            padding: 10px;
+            width: 600px;
+            height: 30px;
+            margin-left: 270px;
+            margin-right: auto;
+            z-index: 3;
+        }
+
+        .bar-btn {
+            display: flex;
+            gap: 10px;
+        }
+
+        .vertical-bar {
+            display: flex;
+            align-items: center;
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+        }
+
+        .bar-btn img {
+            width: 29px;
+            height: 30px;
+            margin-right: 0;
+            margin-left: 0;
+            vertical-align: bottom;
+        }
+
+        #home-btn {
+            background-color: #ffffff;
+            position: fixed;
+            color: white;
+            border: none;
+            padding: 7px 7px;
+            border-radius: 50%;
+            cursor: pointer;
+            bottom: 2px;
+            left: 15px;
+        }
+
+        #search-btn {
+            background-color: #ffffff;
+            position: fixed;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            padding: 7px 7px;
+            cursor: pointer;
+            bottom: 2px;
+            left: 191px;
+        }
+
+        #profile-btn {
+            background-color: #ffffff;
+            position: fixed;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            padding: 7px 7px;
+            cursor: pointer;
+            bottom: 2px;
+            left: 279px;
+        }
+
+        #configure-btn {
+            background-color: #ffffff;
+            position: fixed;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            padding: 7px 7px;
+            cursor: pointer;
+            bottom: 2px;
+            left: 367px;
+        }
+
+        #logout-btn {
+            background-color: #ffffff;
+            position: fixed;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            padding: 7px 7px;
+            cursor: pointer;
+            bottom: 2px;
+            left: 455px;
+        }
+
+        #home-btn {
+            background-color: #ffffff;
+            position: fixed;
+            color: rgb(0, 0, 0);
+            border: none;
+            border-radius: 50%;
+            padding: 7px 7px;
+            cursor: pointer;
+            bottom: 2px;
+            left: 103px;
+
+        }
+
+        #profile-btn:hover {
+            background-color: #e5e5e5;
+            border: #e5e5e5;
+        }
+
+        #home-btn:hover {
+            background-color: #e5e5e5;
+            border: #e5e5e5;
+        }
+
+        #logout-btn:hover {
+            background-color: #e5e5e5;
+            border: #e5e5e5;
+        }
+
+        #search-btn:hover {
+            background-color: #e5e5e5;
+            border: #e5e5e5;
+        }
+
+        #configure-btn:hover {
+            background-color: #e5e5e5;
+            border: #e5e5e5;
+        }
+
+        #post-btn:hover {
+            background-color: #e5e5e5;
+            border: #e5e5e5;
+        }
+    </style>
+
+</head>
+
+<body>
+    <div class="profile-header-container">
+        <div class="home-header">
+            <header>
+                <div class="header-home-screen">
+                    <p>Home</p>
+                </div>
+            </header>
+        </div>
+    </div>
+    <div id="create-post-form-container"></div>
+    <form id="post-form">
+        <div class="post-form-create">
+            <textarea name="content" id="content" placeholder="What's happening?"></textarea>
+            <button type="submit">Post</button>
+        </div>
+    </form>
+    <div id="posts-container"></div>
+
+    <script>
+        function loadPosts() {
+            var pathParts = window.location.pathname.split("/");
+            var username = pathParts[pathParts.length - 1];
+            fetch("/chat/" + username, {
+                method: "POST"
+            })
+                .then(response => response.json())
+                .then(data => {
+                    $("#posts-container").empty();
+
+                    data.forEach(post => {
+                        var imageData = post.iconbase64;
+                        var imageUrl = 'data:image/jpeg;base64,' + imageData;
+                        var postHTML = `<div class="post">
+                <header>
+                    <img id="profile-icon" src="${imageUrl}" class="profile-icon">
+                    <div class="post-title">
+                        <div class="user-name">
+                            <p class="name-user${post.postid}">${post.createdbyname}</p>
+                        </div>
+                        <div class="user-username">
+                            <p class="username-user${post.postid}">@${post.createdby}</p>
+                        </div>
+                    </div>
+                </header>
+                <main>
+                    <div class="post-content">
+                        <p>${post.content}</p>
+                    </div>
+                </main>
+                <footer></footer>
+            </div>`;
+                        var $post = $(postHTML);
+                        var username = post.createdby;
+                        $post.find(".user-name").on("click", function () {
+                            window.location.href = "/" + username;
+                        });
+                        $("#posts-container").prepend($post);
+                    });
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar posts:', error);
+                });
+        }
+
+        function handleCreatePostFormSubmit(event) {
+            event.preventDefault();
+            var pathParts = window.location.pathname.split("/");
+            var username = pathParts[pathParts.length - 1];
+
+            var formData = $(this).serialize();
+            fetch("/create-message/" + username, {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                }
+            })
+                .then(response => response.json())
+                .then(() => {
+                    $("#post-form")[0].reset();
+                    $("#create-post-form-container").hide();
+
+                    loadPosts();
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+        }
+
+
+
+        document.addEventListener("DOMContentLoaded", function () {
+            loadPosts();
+            $("#post-form").submit(handleCreatePostFormSubmit);
+        });
+
+    </script>
+</body>
+
+</html>

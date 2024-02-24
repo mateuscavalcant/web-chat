@@ -9,19 +9,25 @@ import (
 	"github.com/patrickmn/go-cache"
 )
 
-func LimitLoginAttempts(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		loginAttempts := cache.New(5*time.Minute, 10*time.Minute)
-		username := r.PostFormValue("username")
+var loginAttempts *cache.Cache
 
-		if attempts, found := loginAttempts.Get(username); found && attempts.(int) >= 3 {
-			http.Error(w, "Too many login attempts. Please try again later.", http.StatusTooManyRequests)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
+func init() {
+    loginAttempts = cache.New(5*time.Minute, 10*time.Minute)
 }
+
+func LimitLoginAttempts(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        email := r.PostFormValue("email")
+
+        if attempts, found := loginAttempts.Get(email); found && attempts.(int) >= 3 {
+            http.Error(w, "Too many login attempts. Please try again later.", http.StatusTooManyRequests)
+            return
+        }
+
+        next.ServeHTTP(w, r)
+    })
+}
+
 
 // AuthMiddleware is a middleware function to authenticate user sessions.
 func AuthMiddleware(next http.Handler) http.Handler {
