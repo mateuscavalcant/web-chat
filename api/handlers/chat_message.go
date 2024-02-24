@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"web-chat/api/utils"
 	"web-chat/pkg/database"
 	"web-chat/pkg/models"
@@ -19,8 +20,15 @@ import (
 // userConnections mapeia IDs de usuário para conexões WebSocket.
 var userConnections map[int64]*websocket.Conn
 
+// Canal para enviar mensagens
+var messageQueue = make(chan models.UserMessage, 100) // Buffer de 100 mensagens
+
+var connectionMutexes sync.Map
+
+
 func init() {
     userConnections = make(map[int64]*websocket.Conn)
+    go handleWebSocketMessages()
 }
 
 // Chat é um manipulador HTTP que lida com solicitações de chat.
@@ -85,6 +93,12 @@ func Chat(w http.ResponseWriter, r *http.Request) {
             http.Error(w, "Failed to scan rows", http.StatusInternalServerError)
             return
         }
+        // Verificar se a mensagem é da sessão atual ou de outra pessoa
+        if message.UserID == id {
+            message.MessageSession = true
+        } else {
+            message.MessageSession = false
+        }
 
         // Codificar o ícone em base64, se existir
         var imageBase64 string
@@ -101,6 +115,7 @@ func Chat(w http.ResponseWriter, r *http.Request) {
             CreatedBy:     message.CreatedBy,
             Name:          message.Name,
             IconBase64:    imageBase64,
+            MessageSession: message.MessageSession,
         })
     }
 
@@ -112,11 +127,16 @@ func Chat(w http.ResponseWriter, r *http.Request) {
         return
     }
 
+    
+
     // Verificar se o usuário possui uma conexão WebSocket ativa
     conn, ok := userConnections[int64(id)]
     if !ok {
         log.Println("User does not have an active WebSocket connection")
     } else {
+        connMutex, _ := connectionMutexes.LoadOrStore(int64(id), &sync.Mutex{})
+        connMutex.(*sync.Mutex).Lock()
+        defer connMutex.(*sync.Mutex).Unlock()
         // Enviar as mensagens via WebSocket
         err = conn.WriteJSON(messages)
         if err != nil {
@@ -131,27 +151,27 @@ func Chat(w http.ResponseWriter, r *http.Request) {
     w.Write(jsonData)
 }
 
-// HandleMessages lida com novas mensagens recebidas e as transmite para o destinatário.
-func HandleMessages(ws *websocket.Conn) {
-    defer ws.Close()
 
-    for {
-        var msg models.UserMessage
-        err := ws.ReadJSON(&msg) // Use ReadJSON para ler mensagens JSON do WebSocket
-        if err != nil {
-            log.Println("Error receiving message:", err)
-            return
-        }
-
-        // Verifique se o destinatário está conectado
-        destConn, ok := userConnections[int64(msg.MessageTo)]
-		if !ok {
-			log.Println("Recipient is not connected")
-			continue
+// Função para enviar mensagens para o canal
+func sendMessage(message models.UserMessage) {
+    messageQueue <- message
 }
 
+// Função para lidar com as mensagens WebSocket
+func handleWebSocketMessages() {
+    for {
+        // Aguarda mensagens no canal
+        message := <-messageQueue
+
+        // Verifique se o destinatário está conectado
+        destConn, ok := userConnections[int64(message.MessageTo)]
+        if !ok {
+            log.Println("Recipient is not connected")
+            continue
+        }
+
         // Envie a mensagem para o destinatário
-        err = destConn.WriteJSON(msg) // Use WriteJSON para enviar mensagens JSON via WebSocket
+        err := destConn.WriteJSON(message) // Use WriteJSON para enviar mensagens JSON via WebSocket
         if err != nil {
             log.Println("Error sending message:", err)
             continue
@@ -178,7 +198,22 @@ func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
     HandleMessages(ws)
 }
 
+// Enviar mensagens para o canal
+func HandleMessages(ws *websocket.Conn) {
+    defer ws.Close()
 
+    for {
+        var msg models.UserMessage
+        err := ws.ReadJSON(&msg) // Use ReadJSON para ler mensagens JSON do WebSocket
+        if err != nil {
+            log.Println("Error receiving message:", err)
+            return
+        }
+
+        // Envie a mensagem para o canal
+        sendMessage(msg)
+    }
+}
 
 func CreateNewMessage(w http.ResponseWriter, r *http.Request) {
     var userMessage models.UserMessage

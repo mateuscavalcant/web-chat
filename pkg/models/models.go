@@ -12,6 +12,7 @@ type User struct {
 
 
 type UserMessage struct {
+	MessageSession bool `json:"messagesession"`
 	MessageID     int    `json:"post-id"`
 	MessageUserID int    `json:"post-user-id"`
 	UserID     int    `json:"user-id"`
@@ -20,7 +21,6 @@ type UserMessage struct {
 	IconBase64 string `json:"iconbase64"`
 	CreatedBy  string `json:"createdby"`
 	Name       string `json:"createdbyname"`
-	FollowID int `json:"follow-id"`
 	MessageBy int `json:"message-by"`
 	MessageTo  int `json:"message-to"`
 }
