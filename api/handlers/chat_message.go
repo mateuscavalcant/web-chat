@@ -64,7 +64,7 @@ func Chat(w http.ResponseWriter, r *http.Request) {
         JOIN user ON user.id = user_message.id
         WHERE (user_message.id = ? AND user_message.messageTo = ?) OR 
               (user_message.id = ? AND user_message.messageTo = ?)
-        ORDER BY user_message.created_at ASC
+        ORDER BY user_message.created_at DESC
     `)
     if err != nil {
         log.Println("Failed to prepare statement:", err)

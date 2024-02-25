@@ -6,19 +6,20 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
         .home-header {
-            margin-top: -9px;
             border: 1px solid #ccc;
             padding: 10px;
-            width: 600px;
+            width: 620px;
             height: 25px;
             margin-left: calc(50% - 310px);
             overflow: hidden;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
             background-color: #fff;
             z-index: 2;
             margin-bottom: 20px;
-            /* Adicione espaço entre o home-header e as mensagens */
         }
-
 
         .header-home-screen {
             display: flex;
@@ -29,6 +30,11 @@
             font-size: 18px;
             margin-top: -18px;
             margin-left: 10px;
+        }
+
+        #messages-container {
+            margin-top: 80px;
+            margin-bottom: 90px;
         }
 
 
@@ -44,13 +50,11 @@
             overflow-wrap: break-word;
             border-radius: 10px;
             padding: 10px;
-            max-width: 50%;
+            max-width: 40%;
             min-width: 5%;
             display: inline-block;
-            /* Reduzindo o comprimento da caixa em 50% */
             position: relative;
             margin: 0 auto;
-            /* Centralizando a caixa */
             margin-bottom: 10px;
         }
 
@@ -90,12 +94,10 @@
             border-radius: 10px;
             padding: 10px;
             display: inline-block;
-            max-width: 50%;
+            max-width: 40%;
             min-width: 5%;
-            /* Reduzindo o comprimento da caixa em 50% */
             position: relative;
             margin: 0 auto;
-            /* Centralizando a caixa */
             margin-bottom: 10px;
         }
 
@@ -231,6 +233,7 @@
 
             ws.onmessage = function (event) {
 
+
                 loadPosts();
             };
 
@@ -239,6 +242,8 @@
                 setTimeout(setupWebSocket, 1000);
             };
         }
+
+        var autoScroll = true;
 
         function loadPosts() {
             var pathParts = window.location.pathname.split("/");
@@ -275,6 +280,13 @@
                         });
                         $("#messages-container").prepend($post);
                     });
+
+                    if (autoScroll) {
+                        window.scrollTo(0, document.body.scrollHeight);
+                    } else {
+                        document.documentElement.scrollTop = scrollOffset;
+                    }
+
                 })
                 .catch(error => {
                     console.error('Erro ao carregar posts:', error);
@@ -310,6 +322,14 @@
             loadPosts();
             setupWebSocket();
             $("#message-form").submit(handleCreatePostFormSubmit);
+        });
+
+        window.addEventListener("scroll", function () {
+            if (window.scrollY < document.body.scrollHeight - window.innerHeight) {
+                autoScroll = false;
+            } else {
+                autoScroll = true;
+            }
         });
 
     </script>
