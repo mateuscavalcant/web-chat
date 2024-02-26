@@ -110,8 +110,9 @@ func AccessUserAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	
-	// Redirect to /home after successful login.
-    http.Redirect(w, r, "/home", http.StatusFound)
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write([]byte(`{"message": "User logged successfully"}`)); err != nil {
+		log.Println("Error writing response:", err)
+	}
 
 }

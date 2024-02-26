@@ -2,7 +2,10 @@
 <html>
 
 <head>
-    <title>Home</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Chat</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
         .home-header {
@@ -46,7 +49,7 @@
         }
 
         .message-session .message-box {
-            background-color: #DCF8C6;
+            background-color: rgb(48, 41, 255);
             overflow-wrap: break-word;
             border-radius: 10px;
             padding: 10px;
@@ -62,12 +65,12 @@
             content: '';
             position: absolute;
             top: 0;
-            right: -12px;
+            right: -5px;
             width: 0;
             height: 0;
-            border-top: 12px solid transparent;
-            border-bottom: 12px solid transparent;
-            border-left: 12px solid #DCF8C6;
+            border-top: 11px solid transparent;
+            border-bottom: 13px solid transparent;
+            border-left: 13px solid rgb(48, 41, 255);
         }
 
         .message-session .profile-icon {
@@ -89,7 +92,7 @@
         }
 
         .message-to .message-box {
-            background-color: #E5E5EA;
+            background-color: #4a4a4a;
             overflow-wrap: break-word;
             border-radius: 10px;
             padding: 10px;
@@ -105,12 +108,12 @@
             content: '';
             position: absolute;
             top: 0;
-            left: -12px;
+            left: -5px;
             width: 0;
             height: 0;
-            border-top: 12px solid transparent;
-            border-bottom: 12px solid transparent;
-            border-right: 12px solid #E5E5EA;
+            border-top: 11px solid transparent;
+            border-bottom: 13px solid transparent;
+            border-right: 13px solid #4a4a4a;
         }
 
         .message-to .profile-icon {
@@ -125,6 +128,7 @@
         }
 
         .post-content p {
+            color: #fff;
             margin: 0;
             text-align: center;
         }
@@ -159,13 +163,15 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background-color: #fff;
             z-index: 1;
             position: fixed;
         }
 
         .message-form-create input {
-            color: #000000;
+            color: #ffffff;
+            background-color: #aaaaaa;
+            border: 1px solid #aaaaaa;
+            height: 45px;
             width: 410px;
             font-size: 20px;
             font-weight: 500;
@@ -177,7 +183,7 @@
         .message-form-create input::placeholder {
             font-size: 15px;
             font-weight: 500;
-            color: #000000;
+            color: #ffffff;
         }
 
         .message-form-create button {
@@ -187,8 +193,9 @@
             cursor: pointer;
             width: 50px;
             height: 50px;
-            color: #fdfeff;
-            background: #343a3d;
+            color: #ffffff;
+            background: #aaaaaa;
+            border: 1px solid #aaaaaa;
             border-radius: 50%;
             font-size: 15px;
             transition: 0.4s ease;
@@ -204,7 +211,7 @@
         <div class="home-header">
             <header>
                 <div class="header-home-screen">
-                    <p>Web-Chat</p>
+                    <p>Web Chat</p>
                 </div>
             </header>
         </div>
@@ -260,19 +267,19 @@
                         var imageUrl = 'data:image/jpeg;base64,' + imageData;
 
                         var postHTML = `
-                        <div class="${post.messagesession ? 'message-session' : 'message-to'}">
-    <header>
-        <div class="message-box">
-            <img src="${imageUrl}" class="profile-icon">
-            <div class="post-content">
-                <p>${post.content}</p>
-            </div>
-        </div>
-    </header>
-    <div class="user-name">
-        <p class="name-user${post.postid}">${post.createdbyname}</p>
-    </div>
-</div>`;
+                <div class="${post.messagesession ? 'message-session' : 'message-to'}">
+                    <header>
+                        <div class="message-box">
+                            <img src="${imageUrl}" class="profile-icon">
+                            <div class="post-content">
+                                <p>${post.content}</p>
+                            </div>
+                        </div>
+                    </header>
+                    <div class="user-name">
+                        <p class="name-user${post.postid}">${post.createdbyname}</p>
+                    </div>
+                </div>`;
                         var $post = $(postHTML);
                         var username = post.createdby;
                         $post.find(".user-name").on("click", function () {
@@ -332,6 +339,7 @@
             }
         });
 
+    </script>
     </script>
 </body>
 
